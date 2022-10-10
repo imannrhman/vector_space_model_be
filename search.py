@@ -24,27 +24,44 @@ def search_vector_model(corpus, query) :
     document_frequency = defaultdict(int)
     length = defaultdict(int)
 
+
     for id in corpus :
         document = corpus[id]
+        
+        #Menghapus spesial karakter
         document = remove_special_characters(document)
+        
+        #Menghapus digits 
         document = remove_digits(document)
+        
+        #Memisahkan dokumen perkata 
         terms = tokenize(document)
+        
+        #Memfilter kata ganda
         unique_terms = set(terms)
+
+        #Memamsukan kata-kata unique kedalam list kata
         vocabulary = vocabulary.union(unique_terms)
         for term in unique_terms:
+            #Menghitung frekuensi kata tiap dokumen
             postings[term][id] = terms.count(term)
 
     for term in vocabulary:
+        #Menghitung frekuensi kata yang muncul pada dokumen
         document_frequency[term] = len(postings[term])
 
+    #Menghitung bobot dokumen yang nantinya digunakan untuk normalisasi
     for id in corpus:
         l = 0
         for term in vocabulary:
             l += term_frequency(postings,term, id) ** 2
         length[id] = math.sqrt(l)   
 
-        
+
+   
+    #Mensortir hasil dari W t,d
     scores = sorted(
+        #Menjalankan fungsi simmaliry untuk mengcari W t,d
         [(id, similarity(vocabulary, postings, size_corpus, tokenize(query), length, document_frequency, id)) for id in range(size_corpus)],
         key=lambda x: x[1],
         reverse=True,
@@ -64,28 +81,39 @@ def print_scores(scores, corpus) :
 
 
 
-def intersection(sets) :
-    return reduce(set.intersection, [s for s in sets])
-
 
 def similarity(vocabulary, postings, size_corpus, query, length, document_frequency, id) : 
     similarity = 0.0
+
+    #Membagi query perkata
     for term in query :
+
+        #Mencari query yang ada kumpulan kata
         if term in vocabulary :
+
+            #Mengkalikan W t,f dan idf
             similarity += term_frequency(postings, term, id) * inverse_document_frequency(vocabulary, size_corpus, document_frequency, term)
+
+    #Melakukan normalisasi W t,d
     similarity = similarity/length[id]
+
     return similarity
 
 
 
 def tokenize(document):
+
+    #memisahkan kalimat menjadi sebuah kata
     terms = word_tokenize(document)
+
+    #memfilter kata yang bukan termasuk stopwords
     terms = [term.lower() for term in terms if term not in STOPWORDS]
     return terms
 
 
 def inverse_document_frequency(vocabulary, size_corpus, document_frequency, term) :
    
+    #Menghitung nilai idf
     if term in vocabulary :
         return math.log(size_corpus/ document_frequency[term], 2)
     else :
@@ -93,6 +121,7 @@ def inverse_document_frequency(vocabulary, size_corpus, document_frequency, term
 
 def term_frequency(postings, term, id) :
 
+    #Menghitung bobot tf
     if id in postings[term] :
         return postings[term][id]
     else : 
@@ -104,6 +133,7 @@ def remove_special_characters(text) :
     return re.sub(regex, "", text)
 
 def remove_digits(text) :
+    # Menghapus digits dengan regex subsitusi
     regex = re.compile(r"\d")
     return re.sub(regex, "", text)
 
